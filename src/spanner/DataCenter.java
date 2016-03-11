@@ -1,18 +1,16 @@
 package spanner;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 
 
 public class DataCenter extends Thread {
 
 	private String myIp;
-    
+
 	private ServerSocket serverSocket;
 	private Map<String, Integer> pendingTxns = 
 			Collections.synchronizedMap(new HashMap<String, Integer>());
@@ -20,6 +18,8 @@ public class DataCenter extends Thread {
 	Shard shardX; 
 	Shard shardY;
 	Shard shardZ;
+
+	private ArrayList<Shard> allShards = new ArrayList<>();
 	
 	private final int PORT = 3001;
 	
@@ -31,9 +31,12 @@ public class DataCenter extends Thread {
 			
 			myIp = ip;
 			
-			shardX = new Shard();
-			shardY = new Shard();
-			shardZ = new Shard();
+			shardX = new Shard("X");
+			shardY = new Shard("Y");
+			shardZ = new Shard("Z");
+			allShards.add(shardX);
+			allShards.add(shardY);
+			allShards.add(shardZ);
 			
 			System.out.println("Shards configured");
 		}
@@ -105,6 +108,33 @@ public class DataCenter extends Thread {
 				System.out.println(e.toString());
 			}
 		}
+
+		/**
+		 * Send a message
+		 * @param host who you're sending to
+		 * @param msg msg you're trying to send
+		 */
+		private void sendMessage(Integer host, String msg){
+			try{
+				Socket s = new Socket(Main.serverHosts.get(host), PORT);
+				PrintWriter socketOut = new PrintWriter(s.getOutputStream(), true);
+				socketOut.println(msg);
+				socketOut.close();
+				s.close();
+			}catch(IOException e){
+
+			}
+		}
+
+		/**
+		 * Sends a message to all datacenters
+		 * @param msg
+		 */
+		private void sendMessageAllDC(String msg){
+			for (int i = 0; i < Main.serverHosts.size(); i++){
+				sendMessage(i, msg);
+			}
+		}
 		
 		
 		
@@ -118,32 +148,73 @@ public class DataCenter extends Thread {
 			if(recvMsg.length != 3) {
 				return;
 			}
-			else {
+
+			if (recvMsg[0].equals("prepare2PCClient")) {
 				String ipAddr = recvMsg[1];
 				String txn = recvMsg[2];
+				addPendingTxn(txn);
+
+				//Grab dem locks homies
+				boolean xGood = shardX.processTransaction(ipAddr, txn);
+				boolean yGood = shardY.processTransaction(ipAddr, txn);
+				boolean zGood = shardZ.processTransaction(ipAddr, txn);
+				if (xGood && yGood && zGood){
+					//All the shards are cool, we have the locks.
+					//Log the transaction if contains an operation on an item in that particular shard
+					//If we logged it, replicate it to the other shards
+					for (Shard s: allShards){
+						if(s.logTransaction(LogEntry.EntryType.PREPARE, txn)){
+							//replicate that log entry to other data center shards
+							sendMessageAllDC("acceptPaxos!"+ipAddr+"!"+s.shardId+"!"+txn);
+						}
+					}
+
+				}else{
+					//We need some kind of a lock failure strategy
+					//I don't think the paper explicitly mentions one
+					//We could simply sleep in a loop until we get those locks back
+				}
 			}
 			
-			if (recvMsg[0].equals("prepareClient")) {
-				// Upon receiving client 2PC 'prepareClient', acquire
-				// exclusive locks and log 2PC 'prepareClient' locally.
-				// Then, send 
-			}
-			
-			else if (recvMsg[0].equals("prepareDC")) {
-				
+			else if (recvMsg[0].equals("acceptPaxos")) {
+				//
+				//
+				//
 			}
 			
 			else if (recvMsg[0].equals("accept")) {
-				
+				//
+				//
+				//
 			}
 			
 			else if (recvMsg[0].equals("yes")) {
-				
+				//
+				//
+				//
 			}
 			
 			else if(recvMsg[0].equals("no")) {
-				
+				//
+				//
+				//
 			}
+		}
+
+		/*
+		 * Add this new incoming txn to pendingTxns
+		 */
+		private synchronized void addPendingTxn(String txn) {
+			pendingTxns.put(txn, 0);
+			System.out.println("Added " + txn + " to pendingTxns");
+		}
+
+		/*
+		 * This txn is finished. Remove it from pendingTxns
+		 */
+		private synchronized void removePendingTxn(String txn) {
+			pendingTxns.remove(txn);
+			System.out.println("Removed " + txn + " from pendingTxns \nDone.\n");
 		}
 	}
 }
