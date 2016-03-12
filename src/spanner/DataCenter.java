@@ -19,7 +19,7 @@ public class DataCenter extends Thread {
 	Shard shardY;
 	Shard shardZ;
 
-	private ArrayList<Shard> allShards = new ArrayList<>();
+	private ArrayList<Shard> allShards = new ArrayList<Shard>();
 	
 	private final int PORT = 3001;
 	
