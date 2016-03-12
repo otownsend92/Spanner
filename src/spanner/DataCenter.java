@@ -154,50 +154,83 @@ public class DataCenter extends Thread {
 				String txn = recvMsg[2];
 				addPendingTxn(txn);
 
-				//Grab dem locks homies
+				// Grab dem locks homies
 				boolean xGood = shardX.processTransaction(ipAddr, txn);
 				boolean yGood = shardY.processTransaction(ipAddr, txn);
 				boolean zGood = shardZ.processTransaction(ipAddr, txn);
 				if (xGood && yGood && zGood){
-					//All the shards are cool, we have the locks.
-					//Log the transaction if contains an operation on an item in that particular shard
-					//If we logged it, replicate it to the other shards
+					// All the shards are cool, we have the locks.
+					// Log the transaction if contains an operation on an item in that particular shard
+					// If we logged it, replicate it to the other shards
 					for (Shard s: allShards){
+						// TODO: I think we're supposed to log the 2PC prepare not
+						// the transaction...?
 						if(s.logTransaction(LogEntry.EntryType.PREPARE, txn)){
-							//replicate that log entry to other data center shards
+							// replicate that log entry to other data center shards
 							sendMessageAllDC("acceptPaxos!"+ipAddr+"!"+s.shardId+"!"+txn);
 						}
 					}
 
-				}else{
-					//We need some kind of a lock failure strategy
-					//I don't think the paper explicitly mentions one
-					//We could simply sleep in a loop until we get those locks back
+				}else {
+					// JH: We need some kind of a lock failure strategy
+					// I don't think the paper explicitly mentions one
+					// We could simply sleep in a loop until we get those locks back
+					// OT: I think the paper says that they use the simple deadlock prevention
+					// scheme of just having a timeout and if the process can't acquire locks before
+					// the time runs out, it just fails.
 				}
 			}
 			
 			else if (recvMsg[0].equals("acceptPaxos")) {
-				//
-				//
-				//
+				// Log 2PC prepare
+				// 
+				// 
 			}
 			
-			else if (recvMsg[0].equals("accept")) {
-				//
-				//
-				//
+			else if (recvMsg[0].equals("ackAcceptPaxos")) {
+				// Count acks for majority
+				// send ack2PC if you are NOT the 2PC coordinator
+				// If you are 2PC coordinator, wait for acks
+				// 
 			}
 			
-			else if (recvMsg[0].equals("yes")) {
-				//
-				//
-				//
+			else if (recvMsg[0].equals("ack2PC")) {
+				// Only the 2PC coordinator will be receiving this message
+				// 
+				// 2PC coord logs the COMMIT locally
+				// Now send coordinatorAccept2PC
 			}
 			
-			else if(recvMsg[0].equals("no")) {
+			else if (recvMsg[0].equals("coordinatorAccept2PC")) {
+				// 
+				// 
+				// 
+			}
+			
+			else if (recvMsg[0].equals("ackCoordinatorAccept2PC")) {
+				// Only 2PC coord will receive this message
+				// When 2 acks are received, release locks
 				//
-				//
-				//
+				// Then send commit2PC to other Paxos leaders and client
+			}
+			
+			else if(recvMsg[0].equals("commit2PC")) {
+				// When Paxos leader receives this, replicate log entry
+				// of 2PC commit using Paxos again
+				// 
+				// send repCom to other 2 DCs
+			}
+
+			else if(recvMsg[0].equals("repCom")) {
+				// send ackRepCom back to sender
+				// 
+				// 
+			}
+			
+			else if(recvMsg[0].equals("ackRepCom")) {
+				// Once these shards receive majority of ackRepComs,
+				// release local locks
+				// 
 			}
 		}
 
