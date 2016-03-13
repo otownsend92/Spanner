@@ -177,11 +177,13 @@ public class DataCenter extends Thread {
 					// Log the transaction if contains an operation on an item in that particular shard
 					// If we logged it, replicate it to the other shards
 					for (Shard s: allShards){
-						// TODO: I think we're supposed to log the 2PC prepare not
-						// the transaction...?
 						if(s.logTransaction(LogEntry.EntryType.PREPARE, txn)){
 							// replicate that log entry to other data center shards
-							sendMessageAllDC("acceptPaxos!"+ipAddr+"!"+s.shardId+"!"+txn);
+							
+							// TODO: do we send this to all or just the other two DCs?
+							// Also I think we need to include OUR DC id so the receiver
+							// knows who to send it back to...
+							sendMessageAllDC("acceptPaxos!"+ipAddr+"!"+myHostId+"!"+s.shardId+"!"+txn);
 						}
 					}
 
@@ -204,21 +206,21 @@ public class DataCenter extends Thread {
 				// Log 2PC prepare
 				// 
 				// 
-				String ipAddr = recvMsg[1];
-				String shardId = recvMsg[2];
-				String txn = recvMsg[3];
+				String ipAddr 	= recvMsg[1];
+				int senderId 	= Integer.parseInt(recvMsg[2]);
+				String shardId 	= recvMsg[3];
+				String txn 		= recvMsg[4];
+				
+				// TODO: check locks? or did we already check locks in recvMsg[0].equals("prepare2PCClient")
 				
 				String acceptPaxosReply = "ackAcceptPaxos!" 
 						+ ipAddr + "!" + shardId + "!" + txn;
 				
-				int hostId1 = (myHostId + 1) % 3;
-				int hostId2 = (myHostId + 2) % 3;
-				sendMessage(hostId1, acceptPaxosReply);
-				sendMessage(hostId2, acceptPaxosReply);
+				sendMessage(senderId, acceptPaxosReply);
 						
 			}
 			else if(recvMsg[0].equals("rejectPaxos")) {
-				
+				// TODO: implement
 			}
 			
 			else if (recvMsg[0].equals("ackAcceptPaxos")) {
@@ -230,7 +232,15 @@ public class DataCenter extends Thread {
 				String shardId = recvMsg[2];
 				String txn = recvMsg[3];
 				
-			
+				synchronized(ackAcceptPaxos) {
+					if(!ackAcceptPaxos.containsKey(ipAddr+"!"+txn))
+						ackAcceptPaxos.put(ipAddr+"!"+txn, 0);
+					
+					int currentQVal = ackAcceptPaxos.get(ipAddr+"!"+txn)+1;
+					ackAcceptPaxos.put(ipAddr+"!"+txn, currentQVal+1);
+					
+					checkAckAcceptPaxosQuorum(ipAddr, txn);
+				}
 			}
 			else if(recvMsg[0].equals("ackRejectPaxos")) {
 				
@@ -285,6 +295,21 @@ public class DataCenter extends Thread {
 			}
 		}
 
+		private synchronized void checkAckAcceptPaxosQuorum(String clientIpAddr, String txn) {
+			int quorumVal = -9;
+			
+			synchronized(ackAcceptPaxos) {
+				quorumVal = ackAcceptPaxos.get(clientIpAddr+"!"+txn);
+			}
+			
+			if(quorumVal >= 2) {
+				// Notify 2PC coord that we accept
+				String ack2PC = "ack2PC!"+clientIpAddr+"!"+txn;
+				sendMessage(Main.coordId2PC, ack2PC);
+			}
+			
+		}
+		
 		/*
 		 * Add this new incoming txn to pendingTxns
 		 */

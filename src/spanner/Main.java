@@ -23,6 +23,7 @@ public class Main{
 
     // List of DC IPs
     public static ArrayList<String> serverHosts = new ArrayList<String>();
+    public static int coordId2PC; // TODO: add this to JSON
 
     public static void main(String[] args){
         configFile = args[0];
