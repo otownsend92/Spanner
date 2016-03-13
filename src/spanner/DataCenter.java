@@ -15,6 +15,17 @@ public class DataCenter extends Thread {
 	private Map<String, Integer> pendingTxns = 
 			Collections.synchronizedMap(new HashMap<String, Integer>());
 	
+	//maps to store number of accepts/rejects
+	private Map<String, Integer> ackAcceptPaxos =
+			Collections.synchronizedMap(new HashMap<String, Integer>());
+	private Map<String, Integer> ack2PC =
+			Collections.synchronizedMap(new HashMap<String, Integer>());
+	private Map<String, Integer> ackCoordinatorAccept2PC =
+			Collections.synchronizedMap(new HashMap<String, Integer>());
+	private Map<String, Integer> ackRepCom =
+			Collections.synchronizedMap(new HashMap<String, Integer>());
+	
+	
 	Shard shardX; 
 	Shard shardY;
 	Shard shardZ;
@@ -212,6 +223,8 @@ public class DataCenter extends Thread {
 				// When 2 acks are received, release locks
 				//
 				// Then send commit2PC to other Paxos leaders and client
+				
+				
 			}
 			
 			else if(recvMsg[0].equals("commit2PC")) {
