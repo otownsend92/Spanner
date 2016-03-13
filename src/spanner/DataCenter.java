@@ -197,12 +197,18 @@ public class DataCenter extends Thread {
 				// 
 				// 
 			}
+			else if(recvMsg[0].equals("rejectPaxos")) {
+				
+			}
 			
 			else if (recvMsg[0].equals("ackAcceptPaxos")) {
 				// Count acks for majority
 				// send ack2PC if you are NOT the 2PC coordinator
 				// If you are 2PC coordinator, wait for acks
 				// 
+			}
+			else if(recvMsg[0].equals("ackRejectPaxos")) {
+				
 			}
 			
 			else if (recvMsg[0].equals("ack2PC")) {
@@ -211,11 +217,17 @@ public class DataCenter extends Thread {
 				// 2PC coord logs the COMMIT locally
 				// Now send coordinatorAccept2PC
 			}
+			else if(recvMsg[0].equals("ackReject2PC")) {
+				
+			}
 			
 			else if (recvMsg[0].equals("coordinatorAccept2PC")) {
 				// 
 				// 
 				// 
+			}
+			else if(recvMsg[0].equals("coordinatorReject2PC")) {
+				
 			}
 			
 			else if (recvMsg[0].equals("ackCoordinatorAccept2PC")) {
@@ -223,7 +235,8 @@ public class DataCenter extends Thread {
 				// When 2 acks are received, release locks
 				//
 				// Then send commit2PC to other Paxos leaders and client
-				
+			}
+			else if(recvMsg[0].equals("ackCoordinatorReject2PC")){
 				
 			}
 			
