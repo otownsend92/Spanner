@@ -17,15 +17,6 @@ public class Shard {
     private final int READ = 1;
     private final int WRITE = 2;
     
-    //maps to store number of accepts/rejects
-  	private Map<String, Integer> ackAcceptPaxos =
-  			Collections.synchronizedMap(new HashMap<String, Integer>());
-  	private Map<String, Integer> ack2PC =
-  			Collections.synchronizedMap(new HashMap<String, Integer>());
-  	private Map<String, Integer> ackCoordinatorAccept2PC =
-  			Collections.synchronizedMap(new HashMap<String, Integer>());
-  	private Map<String, Integer> ackRepCom =
-  			Collections.synchronizedMap(new HashMap<String, Integer>());
 
 	ArrayList<LogEntry> transactionLog;
 
@@ -37,20 +28,22 @@ public class Shard {
 	String readValues;
 	String shardId;
 
-	public Shard(String shardId) {
+	public Shard(String id) {
 		lockTable = new HashMap<String, Lock>();
 		data = new HashMap<String, Integer>();
+		shardId = id;
 	}
 
 	/**
 	 * Initializes this shard by populating the lockTable and the data Maps
 	 */
-	public Shard(String varName, int numData) {
+	public Shard(String id, int numData) {
 		lockTable = new HashMap<String, Lock>();
 		data = new HashMap<String, Integer>();
+		shardId = id;
 
 		for(int i = 0; i < numData; i++) {
-			String newVar = varName + Integer.toString(i);
+			String newVar = id + Integer.toString(i);
 			data.put(newVar, new Integer(0));
 			lockTable.put(newVar, new Lock());
 		}
