@@ -10,6 +10,7 @@ import java.util.*;
 public class DataCenter extends Thread {
 
 	private String myIp;
+	private int myHostId;
 
 	private ServerSocket serverSocket;
 	private Map<String, Integer> pendingTxns = 
@@ -19,6 +20,16 @@ public class DataCenter extends Thread {
 	Shard shardX; 
 	Shard shardY;
 	Shard shardZ;
+	
+	//maps to store number of accepts/rejects
+  	Map<String, Integer> ackAcceptPaxos =
+  			Collections.synchronizedMap(new HashMap<String, Integer>());
+  	Map<String, Integer> ack2PC =
+  			Collections.synchronizedMap(new HashMap<String, Integer>());
+  	Map<String, Integer> ackCoordinatorAccept2PC =
+  			Collections.synchronizedMap(new HashMap<String, Integer>());
+  	Map<String, Integer> ackRepCom =
+  			Collections.synchronizedMap(new HashMap<String, Integer>());
 
 	private ArrayList<Shard> allShards = new ArrayList<Shard>();
 	
@@ -26,11 +37,12 @@ public class DataCenter extends Thread {
 	
 	
 	// DataCenter constructor
-	public DataCenter(int numShardData, String ip) {
+	public DataCenter(int numShardData, String ip, int hostId) {
 		try{
 			serverSocket = new ServerSocket(PORT);
 			
 			myIp = ip;
+			myHostId = hostId;
 			
 			shardX = new Shard("X");
 			shardY = new Shard("Y");
@@ -193,6 +205,17 @@ public class DataCenter extends Thread {
 				// 
 				// 
 				String ipAddr = recvMsg[1];
+				String shardId = recvMsg[2];
+				String txn = recvMsg[3];
+				
+				String acceptPaxosReply = "ackAcceptPaxos!" 
+						+ ipAddr + "!" + shardId + "!" + txn;
+				
+				int hostId1 = (myHostId + 1) % 3;
+				int hostId2 = (myHostId + 2) % 3;
+				sendMessage(hostId1, acceptPaxosReply);
+				sendMessage(hostId2, acceptPaxosReply);
+						
 			}
 			else if(recvMsg[0].equals("rejectPaxos")) {
 				
@@ -202,7 +225,12 @@ public class DataCenter extends Thread {
 				// Count acks for majority
 				// send ack2PC if you are NOT the 2PC coordinator
 				// If you are 2PC coordinator, wait for acks
-				// 
+				
+				String ipAddr = recvMsg[1];
+				String shardId = recvMsg[2];
+				String txn = recvMsg[3];
+				
+			
 			}
 			else if(recvMsg[0].equals("ackRejectPaxos")) {
 				
