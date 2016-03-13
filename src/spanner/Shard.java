@@ -4,6 +4,7 @@ import sun.font.TrueTypeFont;
 import sun.rmi.runtime.Log;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,16 @@ public class Shard {
     private final int UNLOCKED = 0;
     private final int READ = 1;
     private final int WRITE = 2;
+    
+    //maps to store number of accepts/rejects
+  	private Map<String, Integer> ackAcceptPaxos =
+  			Collections.synchronizedMap(new HashMap<String, Integer>());
+  	private Map<String, Integer> ack2PC =
+  			Collections.synchronizedMap(new HashMap<String, Integer>());
+  	private Map<String, Integer> ackCoordinatorAccept2PC =
+  			Collections.synchronizedMap(new HashMap<String, Integer>());
+  	private Map<String, Integer> ackRepCom =
+  			Collections.synchronizedMap(new HashMap<String, Integer>());
 
 	ArrayList<LogEntry> transactionLog;
 

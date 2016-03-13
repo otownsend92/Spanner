@@ -15,16 +15,6 @@ public class DataCenter extends Thread {
 	private Map<String, Integer> pendingTxns = 
 			Collections.synchronizedMap(new HashMap<String, Integer>());
 	
-	//maps to store number of accepts/rejects
-	private Map<String, Integer> ackAcceptPaxos =
-			Collections.synchronizedMap(new HashMap<String, Integer>());
-	private Map<String, Integer> ack2PC =
-			Collections.synchronizedMap(new HashMap<String, Integer>());
-	private Map<String, Integer> ackCoordinatorAccept2PC =
-			Collections.synchronizedMap(new HashMap<String, Integer>());
-	private Map<String, Integer> ackRepCom =
-			Collections.synchronizedMap(new HashMap<String, Integer>());
-	
 	
 	Shard shardX; 
 	Shard shardY;
@@ -156,7 +146,8 @@ public class DataCenter extends Thread {
 			System.out.println("Received input: " + input);
 			String[] recvMsg = input.split("!");
 			
-			if(recvMsg.length != 3) {
+			if(recvMsg.length < 3) {
+				System.out.println("Malformed message. Returning.");
 				return;
 			}
 
@@ -192,10 +183,16 @@ public class DataCenter extends Thread {
 				}
 			}
 			
+			/*
+			 * Map<String, Integer> ackAcceptPaxos
+			 * Map<String, Integer> ack2PC
+			 */
+			
 			else if (recvMsg[0].equals("acceptPaxos")) {
 				// Log 2PC prepare
 				// 
 				// 
+				String ipAddr = recvMsg[1];
 			}
 			else if(recvMsg[0].equals("rejectPaxos")) {
 				
