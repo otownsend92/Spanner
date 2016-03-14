@@ -16,6 +16,7 @@ public class DataCenter extends Thread {
 	private Map<String, Integer> pendingTxns = 
 			Collections.synchronizedMap(new HashMap<String, Integer>());
 	
+	private List<String> PaxosLog;
 	
 	Shard shardX; 
 	Shard shardY;
@@ -50,6 +51,8 @@ public class DataCenter extends Thread {
 			allShards.add(shardX);
 			allShards.add(shardY);
 			allShards.add(shardZ);
+			
+			PaxosLog = new ArrayList<String>();
 			
 			System.out.println("Shards configured");
 		}
@@ -270,8 +273,57 @@ public class DataCenter extends Thread {
 				// When 2 acks are received, release locks
 				//
 				// Then send commit2PC to other Paxos leaders and client
+				String ipAddr = recvMsg[1];
+				String txn = recvMsg[2];
+				String key = ipAddr + "!" + txn;
+				
+				if(ackCoordinatorAccept2PC.containsKey(key)) {
+					int val = ackCoordinatorAccept2PC.get(key).intValue();
+					val++;
+					ackCoordinatorAccept2PC.put(key, new Integer(val));
+					
+					if(val >= allShards.size()/2+1) { //got majority of responses
+						//2PC coordinator releases his locks
+						//2PC coordinator commits
+						for(int i = 0; i < allShards.size(); i++) {
+							allShards.get(i).performTransaction(ipAddr, true, txn);
+						}
+						
+						//log the commit
+						PaxosLog.add("commit " + txn);
+						
+						//2PC coordinator tells everyone else to commit
+						int hostId1 = (myHostId + 1) % 3;
+						int hostId2 = (myHostId + 2) % 3;
+						String commit2PC = "commit2PC" + "!" + ipAddr + "!" + txn;
+						sendMessage(hostId1, commit2PC);
+						sendMessage(hostId2, commit2PC);
+						
+						//TODO: 2PC coordinator tells client that its committed
+					}
+					
+				} else {
+					//increment quorum count
+					ackCoordinatorAccept2PC.put(key, new Integer(1));
+				}
 			}
 			else if(recvMsg[0].equals("ackCoordinatorReject2PC")){
+				// Only 2PC coord will receive this message
+				// When 2 acks are received, release locks
+				// If 2 acks not received, paxos fails - TODO: quit txn
+				String ipAddr = recvMsg[1];
+				String txn = recvMsg[2];
+				String key = ipAddr + "!" + txn;
+				
+				if(ackCoordinatorAccept2PC.containsKey(key)) {
+					int val = ackCoordinatorAccept2PC.get(key).intValue();
+					val--;
+					ackCoordinatorAccept2PC.put(key, new Integer(val));
+					
+				} else {
+					// quorum count is 0
+					ackCoordinatorAccept2PC.put(key, new Integer(0));
+				}
 				
 			}
 			
@@ -280,18 +332,44 @@ public class DataCenter extends Thread {
 				// of 2PC commit using Paxos again
 				// 
 				// send repCom to other 2 DCs
+				
 			}
 
 			else if(recvMsg[0].equals("repCom")) {
 				// send ackRepCom back to sender
 				// 
 				// 
+				
 			}
 			
 			else if(recvMsg[0].equals("ackRepCom")) {
 				// Once these shards receive majority of ackRepComs,
 				// release local locks
 				// 
+				String ipAddr = recvMsg[1];
+				String txn = recvMsg[2];
+				String key = ipAddr + "!" + txn;
+				
+				if(ackRepCom.containsKey(key)) {
+					int val = ackRepCom.get(key).intValue();
+					val++;
+					ackCoordinatorAccept2PC.put(key, new Integer(val));
+					
+					if(val >= allShards.size()/2+1) { //got majority of responses
+						//Paxos leader releases his locks
+						//Paxos leader commits
+						for(int i = 0; i < allShards.size(); i++) {
+							allShards.get(i).performTransaction(ipAddr, true, txn);
+						}
+						
+						//log the commit
+						PaxosLog.add("commit " + txn);
+					}
+					
+				} else {
+					//increment quorum count
+					ackCoordinatorAccept2PC.put(key, new Integer(1));
+				}
 			}
 		}
 
