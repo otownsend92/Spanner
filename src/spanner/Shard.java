@@ -85,6 +85,43 @@ public class Shard {
 		return gatherLocks(clientIp, trans);
 	}
 
+	 /**
+     * Phase 2 of two phase commit - ACTUALLY perform the transaction, or reject it
+     * either performs the transaction or it doesn't
+     * releases all locks
+     */
+    public void performTransaction(String clientIp, boolean canCommit, String rawTransaction) {
+    	
+        if(canCommit) {
+            List<Transaction> trans = tokenizeTransaction(rawTransaction);
+
+            //go through the transaction and perform everything
+            for(Transaction tran: trans) {
+                String key = tran.getVariable();
+                if(!tran.isRead()) {
+                    //if writes, write the changes
+                    //ASSUMING NO INSERTS
+                    Integer value = tran.getWriteValue();
+                    data.put(key, value);
+                } 
+                //we already returned read values in processTransaction
+            }
+        }
+
+        //whether we can or can't commit, now we release all the locks
+        releaseLocks(clientIp);
+
+    }
+
+    private void releaseLocks(String clientIp) {
+        for(Map.Entry<String, Lock> pair : lockTable.entrySet()) {
+            String key = pair.getKey();
+            Lock value = pair.getValue();
+            value.removeClientIp(clientIp);
+            lockTable.put(key, value);
+        }
+    }
+
 	private boolean gatherLocks(String clientIp, List<Transaction> trans) {
 		for(Transaction tran:trans) {
 			if(!lockTable.containsKey(tran.getVariable())) //don't look in lockTable for variables we don't store
