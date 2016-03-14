@@ -23,7 +23,8 @@ public class Main{
 
     // List of DC IPs
     public static ArrayList<String> serverHosts = new ArrayList<String>();
-    public static int coordId2PC; // TODO: add this to JSON
+    public static String coord2PCIp; // TODO: add this to JSON
+    public static String coord2PCShard;
 
     public static void main(String[] args){
         configFile = args[0];
@@ -80,7 +81,7 @@ public class Main{
         }
         else if(clientServer.equals("server")){
             //Spawn a new datacenter, etc
-            DataCenter d = new DataCenter(500, serverHosts.get(serverID)); // TODO: numShardData is hardcoded for now
+            DataCenter d = new DataCenter(500, serverHosts.get(serverID), serverID); // TODO: numShardData is hardcoded for now
             dataCenters.add(d);
             d.start();
         }

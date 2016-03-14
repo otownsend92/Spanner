@@ -18,7 +18,7 @@ public class Shard {
     private final int WRITE = 2;
     
 
-	ArrayList<LogEntry> transactionLog;
+	private List<LogEntry> transactionLog;
 
 	//these two need to be the same length
     //indexed by variable name (a,b,c...)
@@ -32,6 +32,7 @@ public class Shard {
 		lockTable = new HashMap<String, Lock>();
 		data = new HashMap<String, Integer>();
 		shardId = id;
+		transactionLog = Collections.synchronizedList(new ArrayList<LogEntry>());
 	}
 
 	/**
@@ -90,7 +91,7 @@ public class Shard {
      * either performs the transaction or it doesn't
      * releases all locks
      */
-    public void performTransaction(String clientIp, boolean canCommit, String rawTransaction) {
+    public void performTransaction(String clientIp, boolean canCommit, String rawTransaction, boolean isReleasing) {
     	
         if(canCommit) {
             List<Transaction> trans = tokenizeTransaction(rawTransaction);
@@ -108,12 +109,12 @@ public class Shard {
             }
         }
 
-        //whether we can or can't commit, now we release all the locks
-        releaseLocks(clientIp);
+        if(isReleasing)
+        	releaseLocks(clientIp);
 
     }
 
-    private void releaseLocks(String clientIp) {
+    public void releaseLocks(String clientIp) {
         for(Map.Entry<String, Lock> pair : lockTable.entrySet()) {
             String key = pair.getKey();
             Lock value = pair.getValue();
@@ -209,7 +210,7 @@ public class Shard {
 	 * relevant to this shard i.e. if this is shard x, and we have a r,x1 then it will log
 	 * and return true
 	 */
-	public boolean logTransaction(LogEntry.EntryType e, String rawTransaction){
+	public synchronized boolean logTransaction(LogEntry.EntryType e, String rawTransaction){
 
 		boolean logTrans = false;
 		for(Transaction tran:tokenizeTransaction(rawTransaction)) {
@@ -218,7 +219,9 @@ public class Shard {
 		}
 
 		if(logTrans){
-			transactionLog.add(new LogEntry(e, rawTransaction));
+			synchronized(transactionLog) {
+				transactionLog.add(new LogEntry(e, rawTransaction));
+			}
 			return true;
 		}else{
 			return false;

@@ -25,10 +25,19 @@ public class DataCenter extends Thread {
 	//maps to store number of accepts/rejects
   	Map<String, Integer> ackAcceptPaxos =
   			Collections.synchronizedMap(new HashMap<String, Integer>());
-  	Map<String, Integer> ack2PC =
+  	Map<String, Integer> ackRejectPaxos =
   			Collections.synchronizedMap(new HashMap<String, Integer>());
+  	
+  	Map<String, Integer> ackAccept2PC =
+  			Collections.synchronizedMap(new HashMap<String, Integer>());
+  	Map<String, Integer> ackReject2PC =
+  			Collections.synchronizedMap(new HashMap<String, Integer>());
+  	
   	Map<String, Integer> ackCoordinatorAccept2PC =
   			Collections.synchronizedMap(new HashMap<String, Integer>());
+  	Map<String, Integer> ackCoordinatorReject2PC =
+  			Collections.synchronizedMap(new HashMap<String, Integer>());
+  	
   	Map<String, Integer> ackRepCom =
   			Collections.synchronizedMap(new HashMap<String, Integer>());
 
@@ -130,9 +139,9 @@ public class DataCenter extends Thread {
 		 * @param host who you're sending to
 		 * @param msg msg you're trying to send
 		 */
-		private void sendMessage(Integer host, String msg){
+		private void sendMessage(String host, String msg){
 			try{
-				Socket s = new Socket(Main.serverHosts.get(host), PORT);
+				Socket s = new Socket(host, PORT);
 				PrintWriter socketOut = new PrintWriter(s.getOutputStream(), true);
 				socketOut.println(msg);
 				socketOut.close();
@@ -148,7 +157,7 @@ public class DataCenter extends Thread {
 		 */
 		private void sendMessageAllDC(String msg){
 			for (int i = 0; i < Main.serverHosts.size(); i++){
-				sendMessage(i, msg);
+				sendMessage(Main.serverHosts.get(i), msg);
 			}
 		}
 		
@@ -167,14 +176,14 @@ public class DataCenter extends Thread {
 			}
 
 			if (recvMsg[0].equals("prepare2PCClient")) {
-				String ipAddr = recvMsg[1];
+				String clientIp = recvMsg[1];
 				String txn = recvMsg[2];
 				addPendingTxn(txn);
 
 				// Grab dem locks homies
-				boolean xGood = shardX.processTransaction(ipAddr, txn);
-				boolean yGood = shardY.processTransaction(ipAddr, txn);
-				boolean zGood = shardZ.processTransaction(ipAddr, txn);
+				boolean xGood = shardX.processTransaction(clientIp, txn);
+				boolean yGood = shardY.processTransaction(clientIp, txn);
+				boolean zGood = shardZ.processTransaction(clientIp, txn);
 				if (xGood && yGood && zGood){
 					// All the shards are cool, we have the locks.
 					// Log the transaction if contains an operation on an item in that particular shard
@@ -186,17 +195,12 @@ public class DataCenter extends Thread {
 							// TODO: do we send this to all or just the other two DCs?
 							// Also I think we need to include OUR DC id so the receiver
 							// knows who to send it back to...
-							sendMessageAllDC("acceptPaxos!"+ipAddr+"!"+myHostId+"!"+s.shardId+"!"+txn);
+							sendMessageAllDC("acceptPaxos!"+clientIp+"!"+txn+"!"+s.shardId+"!"+myHostId);
 						}
 					}
 
 				}else {
-					// JH: We need some kind of a lock failure strategy
-					// I don't think the paper explicitly mentions one
-					// We could simply sleep in a loop until we get those locks back
-					// OT: I think the paper says that they use the simple deadlock prevention
-					// scheme of just having a timeout and if the process can't acquire locks before
-					// the time runs out, it just fails.
+					//for loop - sleep and try processing transation up to 4 times. don't receive a response after 4th time = timeout
 				}
 			}
 			
@@ -209,21 +213,31 @@ public class DataCenter extends Thread {
 				// Log 2PC prepare
 				// 
 				// 
-				String ipAddr 	= recvMsg[1];
-				int senderId 	= Integer.parseInt(recvMsg[2]);
+				String clientIp 	= recvMsg[1];
+				String txn 		= recvMsg[2];
 				String shardId 	= recvMsg[3];
-				String txn 		= recvMsg[4];
-				
-				// TODO: check locks? or did we already check locks in recvMsg[0].equals("prepare2PCClient")
-				
-				String acceptPaxosReply = "ackAcceptPaxos!" 
-						+ ipAddr + "!" + shardId + "!" + txn;
-				
-				sendMessage(senderId, acceptPaxosReply);
-						
-			}
-			else if(recvMsg[0].equals("rejectPaxos")) {
-				// TODO: implement
+				String senderIP = recvMsg[4];
+								
+				if(shardId.equals("X")) {
+					boolean good = shardX.processTransaction(clientIp, txn);
+					if(shardX.logTransaction(LogEntry.EntryType.PREPARE, txn)){
+						sendAckPaxos(good, clientIp, shardId, txn, senderIP);
+					}
+				} else if (shardId.equals("Y")) {
+					boolean good = shardY.processTransaction(clientIp, txn);
+					if(shardY.logTransaction(LogEntry.EntryType.PREPARE, txn)){
+						sendAckPaxos(good, clientIp, shardId, txn, senderIP);
+					}
+				} else if (shardId.equals("Z")) {
+					boolean good = shardZ.processTransaction(clientIp, txn);
+					if(shardZ.logTransaction(LogEntry.EntryType.PREPARE, txn)){
+						sendAckPaxos(good, clientIp, shardId, txn, senderIP);
+					}
+				} else {
+					System.out.println("Invalid message received: " + recvMsg[0] + recvMsg[1] + recvMsg[2] + recvMsg[3] + recvMsg[4]);
+					return;
+				}
+								
 			}
 			
 			else if (recvMsg[0].equals("ackAcceptPaxos")) {
@@ -231,75 +245,144 @@ public class DataCenter extends Thread {
 				// send ack2PC if you are NOT the 2PC coordinator
 				// If you are 2PC coordinator, wait for acks
 				
-				String ipAddr = recvMsg[1];
-				String shardId = recvMsg[2];
-				String txn = recvMsg[3];
+				String clientIp = recvMsg[1];
+				String txn = recvMsg[2];
+				String shardId = recvMsg[3];
 				
 				synchronized(ackAcceptPaxos) {
-					if(!ackAcceptPaxos.containsKey(ipAddr+"!"+txn))
-						ackAcceptPaxos.put(ipAddr+"!"+txn, 0);
+					if(!ackAcceptPaxos.containsKey(clientIp+"!"+txn))
+						ackAcceptPaxos.put(clientIp+"!"+txn, 0);
 					
-					int currentQVal = ackAcceptPaxos.get(ipAddr+"!"+txn)+1;
-					ackAcceptPaxos.put(ipAddr+"!"+txn, currentQVal+1);
+					int currentQVal = ackAcceptPaxos.get(clientIp+"!"+txn);
+					ackAcceptPaxos.put(clientIp+"!"+txn, currentQVal+1);
 					
-					checkAckAcceptPaxosQuorum(ipAddr, txn);
+					checkAckAcceptPaxosQuorum(true, clientIp, txn);
 				}
 			}
 			else if(recvMsg[0].equals("ackRejectPaxos")) {
+				String clientIp = recvMsg[1];
+				String txn = recvMsg[2];
+				String shardId = recvMsg[3];
 				
+				synchronized(ackRejectPaxos) {
+					if(!ackRejectPaxos.containsKey(clientIp+"!"+txn))
+						ackRejectPaxos.put(clientIp+"!"+txn, 0);
+					
+					int currentQVal = ackRejectPaxos.get(clientIp+"!"+txn);
+					ackRejectPaxos.put(clientIp+"!"+txn, currentQVal+1);
+					
+					checkAckAcceptPaxosQuorum(false, clientIp, txn);
+					
+					//TODO: rollback log? or nah?
+				}
 			}
 			
-			else if (recvMsg[0].equals("ack2PC")) {
+			else if (recvMsg[0].equals("ackAccept2PC")) {
 				// Only the 2PC coordinator will be receiving this message
 				// 
 				// 2PC coord logs the COMMIT locally
 				// Now send coordinatorAccept2PC
+				String clientIp = recvMsg[1];
+				String txn = recvMsg[2];
+				
+				synchronized(ackAccept2PC) {
+					if(!ackAccept2PC.containsKey(clientIp + "!" + txn))
+						ackAccept2PC.put(clientIp+"!"+txn, 0);
+					
+					int currentQVal = ackAccept2PC.get(clientIp+"!"+txn);
+					ackAccept2PC.put(clientIp+"!"+txn, currentQVal+1);
+							
+					//log
+					if(Main.coord2PCShard.equals("X")) {
+						shardX.logTransaction(LogEntry.EntryType.COMMIT, txn);
+					} else if(Main.coord2PCShard.equals("Y")) {
+						shardY.logTransaction(LogEntry.EntryType.COMMIT, txn);
+					} else if(Main.coord2PCShard.equals("Z")) {
+						shardZ.logTransaction(LogEntry.EntryType.COMMIT, txn);
+					}  
+					
+					//we check the quorum and send coordinatorAccept2PC
+					checkAck2PCQuorum(true, clientIp, txn, Main.coord2PCShard);
+
+				}
 			}
 			else if(recvMsg[0].equals("ackReject2PC")) {
-				
+				//TODO
 			}
 			
 			else if (recvMsg[0].equals("coordinatorAccept2PC")) {
+				// Cohort receives coordinatorAccept2PC, check if we can accept it
 				// 
 				// 
-				// 
-			}
-			else if(recvMsg[0].equals("coordinatorReject2PC")) {
+				String clientIp = recvMsg[1];
+				String txn = recvMsg[2];
+				String shardId = recvMsg[3];
 				
+				boolean loggedTransaction = false;
+				//log
+				if(shardId.equals("X")) {
+					loggedTransaction = shardX.logTransaction(LogEntry.EntryType.COMMIT, txn);
+				} else if(shardId.equals("Y")) {
+					loggedTransaction = shardY.logTransaction(LogEntry.EntryType.COMMIT, txn);
+				} else if(shardId.equals("Z")) {
+					loggedTransaction = shardZ.logTransaction(LogEntry.EntryType.COMMIT, txn);
+				}
+				
+				if(loggedTransaction) {
+					//send ackCoordinatorAccept2PC
+					sendMessage(Main.coord2PCIp, "ackCoordinatorAccept2PC" + "!" + clientIp + "!" + txn);
+				} else {
+					//send ackCoordinatorReject2PC
+					sendMessage(Main.coord2PCIp, "ackCoordinatorReject2PC" + "!" + clientIp + "!" + txn);
+				}
 			}
+			
 			
 			else if (recvMsg[0].equals("ackCoordinatorAccept2PC")) {
 				// Only 2PC coord will receive this message
 				// When 2 acks are received, release locks
 				//
 				// Then send commit2PC to other Paxos leaders and client
-				String ipAddr = recvMsg[1];
+				String clientIp = recvMsg[1];
 				String txn = recvMsg[2];
-				String key = ipAddr + "!" + txn;
+				String key = clientIp + "!" + txn;
 				
 				if(ackCoordinatorAccept2PC.containsKey(key)) {
 					int val = ackCoordinatorAccept2PC.get(key).intValue();
 					val++;
 					ackCoordinatorAccept2PC.put(key, new Integer(val));
 					
-					if(val >= allShards.size()/2+1) { //got majority of responses
+					if(val >= 2) { //got majority of responses
 						//2PC coordinator releases his locks
-						//2PC coordinator commits
+						//2PC coordinator performs transaction
+						//TODO is this right?
 						for(int i = 0; i < allShards.size(); i++) {
-							allShards.get(i).performTransaction(ipAddr, true, txn);
+							allShards.get(i).performTransaction(clientIp, true, txn, true);
 						}
-						
-						//log the commit
-						PaxosLog.add("commit " + txn);
 						
 						//2PC coordinator tells everyone else to commit
 						int hostId1 = (myHostId + 1) % 3;
 						int hostId2 = (myHostId + 2) % 3;
-						String commit2PC = "commit2PC" + "!" + ipAddr + "!" + txn;
-						sendMessage(hostId1, commit2PC);
-						sendMessage(hostId2, commit2PC);
 						
-						//TODO: 2PC coordinator tells client that its committed
+						if(Main.coord2PCShard.equals("X")) {
+							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "Y";
+							sendMessage(Main.serverHosts.get(hostId1), commit2PC1);
+							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "Z";
+							sendMessage(Main.serverHosts.get(hostId2), commit2PC2);
+						} else if(Main.coord2PCShard.equals("Y")) {
+							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "X";
+							sendMessage(Main.serverHosts.get(hostId1), commit2PC1);
+							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "Z";
+							sendMessage(Main.serverHosts.get(hostId2), commit2PC2);
+						} else if (Main.coord2PCShard.equals("Z")) {
+							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "X";
+							sendMessage(Main.serverHosts.get(hostId1), commit2PC1);
+							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "Y";
+							sendMessage(Main.serverHosts.get(hostId2), commit2PC2);
+						}
+						
+						// 2PC coordinator tells client that its committed
+						sendMessage(clientIp, "committed " + txn);
 					}
 					
 				} else {
@@ -311,9 +394,9 @@ public class DataCenter extends Thread {
 				// Only 2PC coord will receive this message
 				// When 2 acks are received, release locks
 				// If 2 acks not received, paxos fails - TODO: quit txn
-				String ipAddr = recvMsg[1];
+				String clientIp = recvMsg[1];
 				String txn = recvMsg[2];
-				String key = ipAddr + "!" + txn;
+				String key = clientIp + "!" + txn;
 				
 				if(ackCoordinatorAccept2PC.containsKey(key)) {
 					int val = ackCoordinatorAccept2PC.get(key).intValue();
@@ -332,13 +415,53 @@ public class DataCenter extends Thread {
 				// of 2PC commit using Paxos again
 				// 
 				// send repCom to other 2 DCs
+				String clientIp = recvMsg[1];
+				String txn = recvMsg[2];
+				String shardId = recvMsg[3];
 				
+				//log
+				boolean loggedTransaction = false;
+				if(shardId.equals("X")) {
+					loggedTransaction = shardX.logTransaction(LogEntry.EntryType.COMMIT, txn);
+				} else if(shardId.equals("Y")) {
+					loggedTransaction = shardY.logTransaction(LogEntry.EntryType.COMMIT, txn);
+				} else if(shardId.equals("Z")) {
+					loggedTransaction = shardZ.logTransaction(LogEntry.EntryType.COMMIT, txn);
+				}
+				
+			
+				for(int i = 0; i < allShards.size(); i++) {
+					allShards.get(i).performTransaction(clientIp, true, txn, false);
+				}	
+					
+				
+				int hostId1 = (myHostId + 1) % 3;
+				int hostId2 = (myHostId + 2) % 3;
+				String repCom = "repCom" + "!" + clientIp + "!" + txn + "!" + shardId + "!" + myHostId;
+				sendMessage(Main.serverHosts.get(hostId1), repCom);
+				sendMessage(Main.serverHosts.get(hostId2), repCom);
 			}
 
 			else if(recvMsg[0].equals("repCom")) {
 				// send ackRepCom back to sender
 				// 
 				// 
+				String clientIp = recvMsg[1];
+				String txn = recvMsg[2];
+				String shardId = recvMsg[3];
+				String paxosLeaderIp = recvMsg[4];
+				
+				//log
+				if(shardId.equals("X")) {
+					shardX.logTransaction(LogEntry.EntryType.COMMIT, txn);
+				} else if(shardId.equals("Y")) {
+					shardY.logTransaction(LogEntry.EntryType.COMMIT, txn);
+				} else if(shardId.equals("Z")) {
+					shardZ.logTransaction(LogEntry.EntryType.COMMIT, txn);
+				}
+				
+				sendMessage(paxosLeaderIp, "ackRepCom" + "!" + clientIp + "!" + txn + "!" + shardId);
+
 				
 			}
 			
@@ -346,24 +469,20 @@ public class DataCenter extends Thread {
 				// Once these shards receive majority of ackRepComs,
 				// release local locks
 				// 
-				String ipAddr = recvMsg[1];
+				String clientIp = recvMsg[1];
 				String txn = recvMsg[2];
-				String key = ipAddr + "!" + txn;
+				String key = clientIp + "!" + txn;
 				
 				if(ackRepCom.containsKey(key)) {
 					int val = ackRepCom.get(key).intValue();
 					val++;
-					ackCoordinatorAccept2PC.put(key, new Integer(val));
+					ackRepCom.put(key, new Integer(val));
 					
 					if(val >= allShards.size()/2+1) { //got majority of responses
 						//Paxos leader releases his locks
-						//Paxos leader commits
 						for(int i = 0; i < allShards.size(); i++) {
-							allShards.get(i).performTransaction(ipAddr, true, txn);
+							allShards.get(i).releaseLocks(clientIp);
 						}
-						
-						//log the commit
-						PaxosLog.add("commit " + txn);
 					}
 					
 				} else {
@@ -372,20 +491,71 @@ public class DataCenter extends Thread {
 				}
 			}
 		}
+		
+		private void sendAckPaxos(boolean accept, String clientIp, String shardId, String txn, String senderIp) {
+			String acceptString = "";
+			if(accept) {
+				acceptString = "Accept";
+			} else {
+				acceptString = "Reject";
+			}
+			
+			String acceptPaxosReply = "ack" + acceptString + "Paxos" + "!" 
+					+ clientIp + "!" + txn + "!" + shardId;
+			
+			sendMessage(senderIp, acceptPaxosReply);
+		}
 
-		private synchronized void checkAckAcceptPaxosQuorum(String clientIpAddr, String txn) {
+		private synchronized void checkAckAcceptPaxosQuorum(boolean accept, String clientIpAddr, String txn) {
 			int quorumVal = -9;
 			
-			synchronized(ackAcceptPaxos) {
-				quorumVal = ackAcceptPaxos.get(clientIpAddr+"!"+txn);
+			if(accept) {
+				synchronized(ackAcceptPaxos) {
+					quorumVal = ackAcceptPaxos.get(clientIpAddr+"!"+txn);
+				}
+				
+				if(quorumVal >= 2) {
+					// Notify 2PC coord that we accept
+					String ack2PC = "ackAccept2PC!"+clientIpAddr+"!"+txn;
+					sendMessage(Main.coord2PCIp, ack2PC);
+				}
+			} else {
+				synchronized(ackRejectPaxos) {
+					quorumVal = ackRejectPaxos.get(clientIpAddr+"!"+txn);
+				}
+				
+				if(quorumVal >= 2) {
+					// Notify 2PC coord and client that we reject
+					String ack2PC = "ackReject2PC!"+clientIpAddr+"!"+txn;
+					sendMessage(Main.coord2PCIp, ack2PC);
+				}
 			}
 			
-			if(quorumVal >= 2) {
-				// Notify 2PC coord that we accept
-				String ack2PC = "ack2PC!"+clientIpAddr+"!"+txn;
-				sendMessage(Main.coordId2PC, ack2PC);
-			}
+		}
+		
+		private synchronized void checkAck2PCQuorum(boolean accept, String clientIp, String txn, String shardId) {
+int quorumVal = -9;
 			
+			if(accept) {
+				synchronized(ackAccept2PC) {
+					quorumVal = ackAccept2PC.get(clientIp+"!"+txn);
+				}
+				
+				if(quorumVal >= 2) {
+					// Notify all cohorts that the coordinator has accepted
+					String coordinatorAck2PC = "coordinatorAccept2PC!"+clientIp+"!"+txn + "!" + shardId;
+					sendMessage(Main.serverHosts.get(myHostId + 1 % 3), coordinatorAck2PC);
+					sendMessage(Main.serverHosts.get(myHostId + 2 % 3), coordinatorAck2PC);
+				}
+			} else {
+				synchronized(ackReject2PC) {
+					quorumVal = ackReject2PC.get(clientIp +"!"+txn);
+				}
+				
+				if(quorumVal >= 2) {
+					// TODO: notify client that transaction has failed
+				}
+			}
 		}
 		
 		/*
