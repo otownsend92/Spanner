@@ -175,6 +175,8 @@ public class DataCenter extends Thread {
 				System.out.println("Malformed message. Returning.");
 				return;
 			}
+			
+			
 
 			if (recvMsg[0].equals("prepare2PCClient")) {
 				String clientIp = recvMsg[1];
