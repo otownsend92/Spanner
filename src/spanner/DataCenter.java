@@ -577,8 +577,8 @@ int quorumVal = -9;
 				if(quorumVal >= 2) {
 					// Notify all cohorts that the coordinator has accepted
 					String coordinatorAck2PC = "coordinatorAccept2PC!"+clientIp+"!"+txn + "!" + shardId;
-					sendMessage(Main.serverHosts.get(myHostId + 1 % 3), coordinatorAck2PC);
-					sendMessage(Main.serverHosts.get(myHostId + 2 % 3), coordinatorAck2PC);
+					sendMessage(Main.serverHosts.get((myHostId + 1) % 3), coordinatorAck2PC);
+					sendMessage(Main.serverHosts.get((myHostId + 2) % 3), coordinatorAck2PC);
 				}
 			} else {
 				synchronized(ackReject2PC) {
