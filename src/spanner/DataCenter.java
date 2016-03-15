@@ -249,7 +249,10 @@ public class DataCenter extends Thread {
 				String clientIp 	= recvMsg[1];
 				String txn 		= recvMsg[2];
 				String shardId 	= recvMsg[3];
-				String senderIP = recvMsg[4];
+				int senderId = Integer.parseInt(recvMsg[4]);
+				
+				
+				String senderIP = Main.serverHosts.get(senderId);
 								
 				if(shardId.equals("X")) {
 					boolean good = shardX.processTransaction(clientIp, txn);
