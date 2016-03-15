@@ -113,9 +113,11 @@ public class Client extends com.yahoo.ycsb.DB implements Runnable{
     public Status update(String s, String s1, HashMap<String, ByteIterator> hashMap) {
         synchronized(lock) {
             try {
+            	int i = 0; 
                 for(String host: serverConnections.keySet()) {
-                    String msg = "accept!" + clientIP + "!" + s1;
+                    String msg = "prepare2PCClient!" + clientIP + "!" + s1 + "!" + Main.paxosLeaders.get(i);
                     this.sendMessage(host, msg);
+                    i++;
                 }
                 lock.wait();
             } catch (InterruptedException e) {

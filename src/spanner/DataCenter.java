@@ -178,29 +178,40 @@ public class DataCenter extends Thread {
 			if (recvMsg[0].equals("prepare2PCClient")) {
 				String clientIp = recvMsg[1];
 				String txn = recvMsg[2];
+				String shardId = recvMsg[3];
+				
 				addPendingTxn(txn);
+				
+				int hostId1 = (myHostId + 1) % 3;
+				int hostId2 = (myHostId + 2) % 3;
 
 				// Grab dem locks homies
-				boolean xGood = shardX.processTransaction(clientIp, txn);
-				boolean yGood = shardY.processTransaction(clientIp, txn);
-				boolean zGood = shardZ.processTransaction(clientIp, txn);
-				if (xGood && yGood && zGood){
-					// All the shards are cool, we have the locks.
-					// Log the transaction if contains an operation on an item in that particular shard
-					// If we logged it, replicate it to the other shards
-					for (Shard s: allShards){
-						if(s.logTransaction(LogEntry.EntryType.PREPARE, txn)){
-							// replicate that log entry to other data center shards
-							
-							// TODO: do we send this to all or just the other two DCs?
-							// Also I think we need to include OUR DC id so the receiver
-							// knows who to send it back to...
-							sendMessageAllDC("acceptPaxos!"+clientIp+"!"+txn+"!"+s.shardId+"!"+myHostId);
-						}
+				if(shardId.equals("X")) {
+					boolean good = shardX.processTransaction(clientIp, txn);
+					if(shardX.logTransaction(LogEntry.EntryType.PREPARE, txn) && good) {
+						sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+						sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+					} else {
+						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
+					}
+				} else if(shardId.equals("Y")) {
+					boolean good = shardY.processTransaction(clientIp, txn);
+					if(shardY.logTransaction(LogEntry.EntryType.PREPARE, txn) && good) {
+						sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+						sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+					} else {
+						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
 					}
 
-				}else {
-					//for loop - sleep and try processing transation up to 4 times. don't receive a response after 4th time = timeout
+				} else if(shardId.equals("Z")) {
+					boolean good = shardZ.processTransaction(clientIp, txn);
+					if(shardZ.logTransaction(LogEntry.EntryType.PREPARE, txn) && good) {
+						sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+						sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+					} else {
+						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
+					}
+					// TODO: maybe try to send message multiple times before failing
 				}
 			}
 			
