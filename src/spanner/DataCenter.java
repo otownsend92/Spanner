@@ -140,6 +140,7 @@ public class DataCenter extends Thread {
 		 * @param msg msg you're trying to send
 		 */
 		private void sendMessage(String host, String msg){
+			System.out.println("Sending: " + msg +" to " + host);
 			try{
 				Socket s = new Socket(host, PORT);
 				PrintWriter socketOut = new PrintWriter(s.getOutputStream(), true);
@@ -174,19 +175,27 @@ public class DataCenter extends Thread {
 				System.out.println("Malformed message. Returning.");
 				return;
 			}
+			
+			
 
 			if (recvMsg[0].equals("prepare2PCClient")) {
 				String clientIp = recvMsg[1];
 				String txn = recvMsg[2];
 				String shardId = recvMsg[3];
 				
+				System.out.println("clientIp: "+ clientIp);
+				System.out.println("txn: "+ txn);
+				System.out.println("shardId: "+ shardId);
+				
 				addPendingTxn(txn);
+				System.out.println("added transaction");
 				
 				int hostId1 = (myHostId + 1) % 3;
 				int hostId2 = (myHostId + 2) % 3;
 
 				// Grab dem locks homies
 				if(shardId.equals("X")) {
+					System.out.println("ShardId equals X");
 					boolean good = shardX.processTransaction(clientIp, txn);
 					if(good) {
 						if(shardX.logTransaction(LogEntry.EntryType.PREPARE, txn)) {
@@ -197,6 +206,7 @@ public class DataCenter extends Thread {
 						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
 					}
 				} else if(shardId.equals("Y")) {
+					System.out.println("ShardId equals Y");
 					boolean good = shardY.processTransaction(clientIp, txn);
 					if(good) {
 						if(shardY.logTransaction(LogEntry.EntryType.PREPARE, txn)) {
@@ -208,6 +218,7 @@ public class DataCenter extends Thread {
 					}
 
 				} else if(shardId.equals("Z")) {
+					System.out.println("ShardId equals Z");
 					boolean good = shardZ.processTransaction(clientIp, txn);
 					if(good) {
 						if(shardZ.logTransaction(LogEntry.EntryType.PREPARE, txn)) {
