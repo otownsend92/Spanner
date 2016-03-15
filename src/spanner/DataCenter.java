@@ -54,9 +54,9 @@ public class DataCenter extends Thread {
 			myIp = ip;
 			myHostId = hostId;
 			
-			shardX = new Shard("X");
-			shardY = new Shard("Y");
-			shardZ = new Shard("Z");
+			shardX = new Shard("X", numShardData);
+			shardY = new Shard("Y", numShardData);
+			shardZ = new Shard("Z", numShardData);
 			allShards.add(shardX);
 			allShards.add(shardY);
 			allShards.add(shardZ);
