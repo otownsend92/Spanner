@@ -43,7 +43,7 @@ public class DataCenter extends Thread {
 
 	private ArrayList<Shard> allShards = new ArrayList<Shard>();
 	
-	private final int PORT = 3001;
+	private final int PORT = 3000;
 	
 	
 	// DataCenter constructor

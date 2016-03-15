@@ -17,7 +17,7 @@ import java.util.*;
 public class Client extends com.yahoo.ycsb.DB implements Runnable{
 
     private ArrayList<String> hosts;
-    private int portNumber = 3001;
+    private int portNumber = 3000;
     private HashMap<String, ClientConnection> serverConnections;
     private LinkedList<String> operationQueue;
     private final Object lock = new Object();
