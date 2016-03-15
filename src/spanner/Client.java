@@ -162,6 +162,8 @@ public class Client extends com.yahoo.ycsb.DB implements Runnable{
             System.out.println("Server " + Integer.toString(i) +  ": " + ip );
             hosts.add(ip);
         }
+
+
         initConnections();
     }
 

@@ -213,9 +213,12 @@ public class Shard {
 	public synchronized boolean logTransaction(LogEntry.EntryType e, String rawTransaction){
 
 		boolean logTrans = false;
+		System.out.println("Log: " + rawTransaction);
 		for(Transaction tran:tokenizeTransaction(rawTransaction)) {
-			if (lockTable.containsKey(tran.getVariable())) //don't log a transaction
+			if (lockTable.containsKey(tran.getVariable())) { //don't log a transaction
 				logTrans = true;
+				System.out.println("LogTrans true ");
+			}
 		}
 
 		if(logTrans){
