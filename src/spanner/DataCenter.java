@@ -140,6 +140,7 @@ public class DataCenter extends Thread {
 		 * @param msg msg you're trying to send
 		 */
 		private void sendMessage(String host, String msg){
+			System.out.println("Sending: " + msg +" to " + host);
 			try{
 				Socket s = new Socket(host, PORT);
 				PrintWriter socketOut = new PrintWriter(s.getOutputStream(), true);
