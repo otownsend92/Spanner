@@ -43,6 +43,7 @@ public class Shard {
 		data = new HashMap<String, Integer>();
 		shardId = id;
 
+		transactionLog = Collections.synchronizedList(new ArrayList<LogEntry>());
 		for(int i = 0; i < numData; i++) {
 			String newVar = id + Integer.toString(i);
 			data.put(newVar, new Integer(0));
