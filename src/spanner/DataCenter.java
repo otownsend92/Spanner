@@ -181,23 +181,32 @@ public class DataCenter extends Thread {
 				String txn = recvMsg[2];
 				String shardId = recvMsg[3];
 				
+				System.out.println("clientIp: "+ clientIp);
+				System.out.println("txn: "+ txn);
+				System.out.println("shardId: "+ shardId);
+				
 				addPendingTxn(txn);
+				System.out.println("added transaction");
 				
 				int hostId1 = (myHostId + 1) % 3;
 				int hostId2 = (myHostId + 2) % 3;
 
 				// Grab dem locks homies
 				if(shardId.equals("X")) {
+					System.out.println("ShardId equals X");
 					boolean good = shardX.processTransaction(clientIp, txn);
 					if(shardX.logTransaction(LogEntry.EntryType.PREPARE, txn) && good) {
+						System.out.println("Grabbed locks for X");
 						sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 						sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 					} else {
 						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
 					}
 				} else if(shardId.equals("Y")) {
+					System.out.println("ShardId equals Y");
 					boolean good = shardY.processTransaction(clientIp, txn);
 					if(shardY.logTransaction(LogEntry.EntryType.PREPARE, txn) && good) {
+						System.out.println("Grabbed locks for Y");
 						sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 						sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 					} else {
@@ -205,8 +214,10 @@ public class DataCenter extends Thread {
 					}
 
 				} else if(shardId.equals("Z")) {
+					System.out.println("ShardId equals Z");
 					boolean good = shardZ.processTransaction(clientIp, txn);
 					if(shardZ.logTransaction(LogEntry.EntryType.PREPARE, txn) && good) {
+						System.out.println("Grabbed locks for Z");
 						sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 						sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 					} else {
