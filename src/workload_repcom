@@ -2,7 +2,7 @@
 
 recordcount=1000
 operationcount=1000
-workload=repcom.YCSBWorkload
+workload=spanner.YCSBWorkload
 
 readallfields=true
 
@@ -17,7 +17,7 @@ NumServ=3
 Server1=128.111.84.191
 Server2=128.111.84.192
 Server3=98.182.16.22
-ClientIP=169.231.117.218
+ClientIP=169.231.94.52
 
 # Granularity for time series (in milliseconds)
 timeseries.granularity=1000
