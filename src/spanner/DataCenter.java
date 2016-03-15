@@ -54,9 +54,9 @@ public class DataCenter extends Thread {
 			myIp = ip;
 			myHostId = hostId;
 			
-			shardX = new Shard("X");
-			shardY = new Shard("Y");
-			shardZ = new Shard("Z");
+			shardX = new Shard("X", numShardData);
+			shardY = new Shard("Y", numShardData);
+			shardZ = new Shard("Z", numShardData);
 			allShards.add(shardX);
 			allShards.add(shardY);
 			allShards.add(shardZ);
@@ -200,8 +200,8 @@ public class DataCenter extends Thread {
 					if(good) {
 						if(shardX.logTransaction(LogEntry.EntryType.PREPARE, txn)) {
 							System.out.println("shard x is sending acceptPaxos");
-							sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
-							sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+							sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+							sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 						}
 					} else {
 						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
@@ -213,8 +213,8 @@ public class DataCenter extends Thread {
 						System.out.println("shard y is sending acceptPaxos");
 
 						if(shardY.logTransaction(LogEntry.EntryType.PREPARE, txn)) {
-							sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
-							sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+							sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+							sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 						}
 					} else {
 						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
@@ -227,8 +227,8 @@ public class DataCenter extends Thread {
 						System.out.println("shard z is sending acceptPaxos");
 
 						if(shardZ.logTransaction(LogEntry.EntryType.PREPARE, txn)) {
-							sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
-							sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+							sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+							sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 						}
 					} else {
 						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
