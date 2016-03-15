@@ -88,9 +88,9 @@ public class Main{
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    c.sendMessage(serverHosts.get(0), "prepare2PC!169.231.94.52!r,x2!X");
-                    c.sendMessage(serverHosts.get(1), "prepare2PC!169.231.94.52!r,x2!Y");
-                    c.sendMessage(serverHosts.get(2), "prepare2PC!169.231.94.52!r,x2!Z");
+                    c.sendMessage(serverHosts.get(0), "prepare2PCClient!169.231.94.52!r,x2!X");
+                    c.sendMessage(serverHosts.get(1), "prepare2PCClient!169.231.94.52!r,x2!Y");
+                    c.sendMessage(serverHosts.get(2), "prepare2PCClient!169.231.94.52!r,x2!Z");
                 }
             }, 2000);
 
