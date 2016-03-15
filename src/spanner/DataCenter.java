@@ -199,6 +199,7 @@ public class DataCenter extends Thread {
 					boolean good = shardX.processTransaction(clientIp, txn);
 					if(good) {
 						if(shardX.logTransaction(LogEntry.EntryType.PREPARE, txn)) {
+							System.out.println("shard x is sending acceptPaxos");
 							sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 							sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 						}
@@ -209,6 +210,8 @@ public class DataCenter extends Thread {
 					System.out.println("ShardId equals Y");
 					boolean good = shardY.processTransaction(clientIp, txn);
 					if(good) {
+						System.out.println("shard y is sending acceptPaxos");
+
 						if(shardY.logTransaction(LogEntry.EntryType.PREPARE, txn)) {
 							sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 							sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
@@ -221,6 +224,8 @@ public class DataCenter extends Thread {
 					System.out.println("ShardId equals Z");
 					boolean good = shardZ.processTransaction(clientIp, txn);
 					if(good) {
+						System.out.println("shard z is sending acceptPaxos");
+
 						if(shardZ.logTransaction(LogEntry.EntryType.PREPARE, txn)) {
 							sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 							sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
