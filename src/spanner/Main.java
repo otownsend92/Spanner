@@ -20,11 +20,15 @@ public class Main{
     private static String clientServer = "";
     public static ArrayList<DataCenter> dataCenters= new ArrayList<DataCenter>();
     private static Integer serverID = -1;
+    private static String paxosLeader0;
+    private static String paxosLeader1;
+    private static String paxosLeader3;
 
     // List of DC IPs
     public static ArrayList<String> serverHosts = new ArrayList<String>();
     public static String coord2PCIp; // TODO: add this to JSON
     public static String coord2PCShard;
+    public static ArrayList<String> leaderShards = new ArrayList<>();
 
     public static void main(String[] args){
         configFile = args[0];
@@ -55,6 +59,13 @@ public class Main{
             for (Object o : servs){
                 JSONObject currServ  = (JSONObject) o;
                 serverHosts.add((String)currServ.get("ip"));
+            }
+            coord2PCIp = (String) obj.get("coordinator_ip");
+            coord2PCShard = (String) obj.get("coordinator_id");
+            JSONArray leaders = (JSONArray) obj.get("leaders");
+            for (Object o: leaders){
+                JSONObject leader = (JSONObject) o;
+                leaderShards.add((String)leader.get("id"));
             }
 
         }catch(ParseException e){
