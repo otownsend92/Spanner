@@ -78,6 +78,7 @@ public class Shard {
 		//at this point, gather all the read values
 		synchronized(this) {
 			readValues = sb.toString();
+			System.out.println("*******************" + readValues);
 		}
 
 
