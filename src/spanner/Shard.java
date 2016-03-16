@@ -26,7 +26,7 @@ public class Shard {
 	String shardId;
 
 	public Shard(String id) {
-		lockTable = new HashMap<String, Lock>();
+		lockTable = Collections.synchronizedMap(new HashMap<String, Lock>());
 		data = new HashMap<String, Integer>();
 		shardId = id;
 		transactionLog = Collections.synchronizedList(new ArrayList<LogEntry>());
@@ -36,7 +36,7 @@ public class Shard {
 	 * Initializes this shard by populating the lockTable and the data Maps
 	 */
 	public Shard(String id, int numData) {
-		lockTable = new HashMap<String, Lock>();
+		lockTable = Collections.synchronizedMap(new HashMap<String, Lock>());
 		data = new HashMap<String, Integer>();
 		shardId = id;
 
@@ -112,14 +112,28 @@ public class Shard {
         	releaseLocks(clientIp);
 
     }
-
+    
     public void releaseLocks(String clientIp) {
         for(Map.Entry<String, Lock> pair : lockTable.entrySet()) {
-            String key = pair.getKey();
-            Lock value = pair.getValue();
-            value.removeClientIp(clientIp);
-            lockTable.put(key, value);
+        	synchronized(lockTable) {
+        		String key = pair.getKey();
+                Lock value = pair.getValue();
+                value.removeClientIp(clientIp);
+                lockTable.put(key, value);
+        	}
         }
+    }
+    
+    public void releaseSpecificLocks(String clientIp, String txn) {
+    	List<Transaction> trans = tokenizeTransaction(txn);
+    	for(Transaction tran: trans) {
+    		synchronized(lockTable) {
+    			String key = tran.getVariable();
+        		Lock value = lockTable.get(key);
+        		value.removeClientIp(clientIp);
+        		lockTable.put(key, value);
+    		}
+    	}
     }
 
 	private boolean gatherLocks(String clientIp, List<Transaction> trans) {

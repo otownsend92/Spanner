@@ -194,6 +194,7 @@ public class DataCenter extends Thread {
 						sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 						
 					} else {
+						removePendingTxn(clientIp, txn);
 						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
 					}
 				} else if(shardId.equals("Y")) {
@@ -207,6 +208,7 @@ public class DataCenter extends Thread {
 						sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 						
 					} else {
+						removePendingTxn(clientIp, txn);
 						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
 					}
 
@@ -221,6 +223,7 @@ public class DataCenter extends Thread {
 						sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 						
 					} else {
+						removePendingTxn(clientIp, txn);
 						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
 					}
 					// TODO: maybe try to send message multiple times before failing
@@ -300,6 +303,8 @@ public class DataCenter extends Thread {
 					checkAckAcceptPaxosQuorum(false, clientIp, txn);
 					
 					//TODO: rollback log? or nah?
+					removePendingTxn(clientIp, txn);
+
 				}
 			}
 			
@@ -592,8 +597,13 @@ int quorumVal = -9;
 		/*
 		 * This txn is finished. Remove it from pendingTxns
 		 */
-		private synchronized void removePendingTxn(String txn) {
+		private synchronized void removePendingTxn(String clientIp, String txn) {
 			pendingTxns.remove(txn);
+			//release locks
+			shardX.releaseSpecificLocks(clientIp, txn);
+			shardY.releaseSpecificLocks(clientIp, txn);
+			shardZ.releaseSpecificLocks(clientIp, txn);
+
 			System.out.println("Removed " + txn + " from pendingTxns \nDone.\n");
 		}
 	}
