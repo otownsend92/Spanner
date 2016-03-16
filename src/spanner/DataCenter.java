@@ -198,11 +198,11 @@ public class DataCenter extends Thread {
 					System.out.println("ShardId equals X");
 					boolean good = shardX.processTransaction(clientIp, txn);
 					if(good) {
-						if(shardX.logTransaction(LogEntry.EntryType.PREPARE, txn)) {
-							System.out.println("shard x is sending acceptPaxos");
-							sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
-							sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
-						}
+						shardX.logTransaction(LogEntry.EntryType.PREPARE, txn);
+						System.out.println("shard x is sending acceptPaxos");
+						sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+						sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+						
 					} else {
 						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
 					}
@@ -212,10 +212,10 @@ public class DataCenter extends Thread {
 					if(good) {
 						System.out.println("shard y is sending acceptPaxos");
 
-						if(shardY.logTransaction(LogEntry.EntryType.PREPARE, txn)) {
-							sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
-							sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
-						}
+						shardY.logTransaction(LogEntry.EntryType.PREPARE, txn);
+						sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+						sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+						
 					} else {
 						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
 					}
@@ -226,10 +226,10 @@ public class DataCenter extends Thread {
 					if(good) {
 						System.out.println("shard z is sending acceptPaxos");
 
-						if(shardZ.logTransaction(LogEntry.EntryType.PREPARE, txn)) {
-							sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
-							sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
-						}
+						shardZ.logTransaction(LogEntry.EntryType.PREPARE, txn);
+						sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+						sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
+						
 					} else {
 						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
 					}
@@ -249,23 +249,26 @@ public class DataCenter extends Thread {
 				String clientIp 	= recvMsg[1];
 				String txn 		= recvMsg[2];
 				String shardId 	= recvMsg[3];
-				String senderIP = recvMsg[4];
+				int senderId = Integer.parseInt(recvMsg[4]);
+				
+				
+				String senderIP = Main.serverHosts.get(senderId);
 								
 				if(shardId.equals("X")) {
 					boolean good = shardX.processTransaction(clientIp, txn);
-					if(shardX.logTransaction(LogEntry.EntryType.PREPARE, txn)){
-						sendAckPaxos(good, clientIp, shardId, txn, senderIP);
-					}
+					shardX.logTransaction(LogEntry.EntryType.PREPARE, txn);
+					sendAckPaxos(good, clientIp, shardId, txn, senderIP);
+					
 				} else if (shardId.equals("Y")) {
 					boolean good = shardY.processTransaction(clientIp, txn);
-					if(shardY.logTransaction(LogEntry.EntryType.PREPARE, txn)){
-						sendAckPaxos(good, clientIp, shardId, txn, senderIP);
-					}
+					shardY.logTransaction(LogEntry.EntryType.PREPARE, txn);
+					sendAckPaxos(good, clientIp, shardId, txn, senderIP);
+					
 				} else if (shardId.equals("Z")) {
 					boolean good = shardZ.processTransaction(clientIp, txn);
-					if(shardZ.logTransaction(LogEntry.EntryType.PREPARE, txn)){
-						sendAckPaxos(good, clientIp, shardId, txn, senderIP);
-					}
+					shardZ.logTransaction(LogEntry.EntryType.PREPARE, txn);
+					sendAckPaxos(good, clientIp, shardId, txn, senderIP);
+					
 				} else {
 					System.out.println("Invalid message received: " + recvMsg[0] + recvMsg[1] + recvMsg[2] + recvMsg[3] + recvMsg[4]);
 					return;
@@ -577,8 +580,8 @@ int quorumVal = -9;
 				if(quorumVal >= 2) {
 					// Notify all cohorts that the coordinator has accepted
 					String coordinatorAck2PC = "coordinatorAccept2PC!"+clientIp+"!"+txn + "!" + shardId;
-					sendMessage(Main.serverHosts.get(myHostId + 1 % 3), coordinatorAck2PC);
-					sendMessage(Main.serverHosts.get(myHostId + 2 % 3), coordinatorAck2PC);
+					sendMessage(Main.serverHosts.get((myHostId + 1) % 3), coordinatorAck2PC);
+					sendMessage(Main.serverHosts.get((myHostId + 2) % 3), coordinatorAck2PC);
 				}
 			} else {
 				synchronized(ackReject2PC) {
