@@ -142,7 +142,8 @@ public class DataCenter extends Thread {
 		private void sendMessage(String host, String msg){
 			System.out.println("Sending: " + msg +" to " + host);
 			try{
-				Socket s = new Socket(host, PORT);
+				Socket s = new Socket();//(host, PORT);
+				s.setSoTimeout(500);
 				PrintWriter socketOut = new PrintWriter(s.getOutputStream(), true);
 				socketOut.println(msg);
 				socketOut.close();
@@ -151,17 +152,6 @@ public class DataCenter extends Thread {
 
 			}
 		}
-
-		/**
-		 * Sends a message to all datacenters
-		 * @param msg
-		 */
-		private void sendMessageAllDC(String msg){
-			for (int i = 0; i < Main.serverHosts.size(); i++){
-				sendMessage(Main.serverHosts.get(i), msg);
-			}
-		}
-		
 		
 		
 		/*
@@ -396,24 +386,26 @@ public class DataCenter extends Thread {
 						int hostId2 = (myHostId + 2) % 3;
 						
 						if(Main.coord2PCShard.equals("X")) {
-							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "Y";
+							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "!" + "Y";
 							sendMessage(Main.serverHosts.get(hostId1), commit2PC1);
-							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "Z";
+							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "!" + "Z";
 							sendMessage(Main.serverHosts.get(hostId2), commit2PC2);
 						} else if(Main.coord2PCShard.equals("Y")) {
-							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "X";
+							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "!" + "X";
 							sendMessage(Main.serverHosts.get(hostId1), commit2PC1);
-							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "Z";
+							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "!" + "Z";
 							sendMessage(Main.serverHosts.get(hostId2), commit2PC2);
 						} else if (Main.coord2PCShard.equals("Z")) {
-							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "X";
+							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "!" + "X";
 							sendMessage(Main.serverHosts.get(hostId1), commit2PC1);
-							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "Y";
+							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "!" + "Y";
 							sendMessage(Main.serverHosts.get(hostId2), commit2PC2);
 						}
 						
 						// 2PC coordinator tells client that its committed
-						sendMessage(clientIp, "committed " + txn);
+						
+						String returnValues = " X: " + shardX.readValues + " Y: " + shardY.readValues + " Z: " + shardZ.readValues;
+						sendMessage(clientIp, "committed " + txn + returnValues);
 					}
 					
 				} else {
