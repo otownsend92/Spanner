@@ -353,24 +353,19 @@ public class DataCenter extends Thread {
 				String clientIp = recvMsg[1];
 				String txn = recvMsg[2];
 				String shardId = recvMsg[3];
-				
-				boolean loggedTransaction = false;
+
 				//log
 				if(shardId.equals("X")) {
-					loggedTransaction = shardX.logTransaction(LogEntry.EntryType.COMMIT, txn);
+					shardX.logTransaction(LogEntry.EntryType.COMMIT, txn);
 				} else if(shardId.equals("Y")) {
-					loggedTransaction = shardY.logTransaction(LogEntry.EntryType.COMMIT, txn);
+					 shardY.logTransaction(LogEntry.EntryType.COMMIT, txn);
 				} else if(shardId.equals("Z")) {
-					loggedTransaction = shardZ.logTransaction(LogEntry.EntryType.COMMIT, txn);
+					shardZ.logTransaction(LogEntry.EntryType.COMMIT, txn);
 				}
-				
-				if(loggedTransaction) {
-					//send ackCoordinatorAccept2PC
-					sendMessage(Main.coord2PCIp, "ackCoordinatorAccept2PC" + "!" + clientIp + "!" + txn);
-				} else {
-					//send ackCoordinatorReject2PC
-					sendMessage(Main.coord2PCIp, "ackCoordinatorReject2PC" + "!" + clientIp + "!" + txn);
-				}
+
+				//send ackCoordinatorAccept2PC
+				sendMessage(Main.coord2PCIp, "ackCoordinatorAccept2PC" + "!" + clientIp + "!" + txn);
+
 			}
 			
 			
@@ -426,7 +421,7 @@ public class DataCenter extends Thread {
 					ackCoordinatorAccept2PC.put(key, new Integer(1));
 				}
 			}
-			else if(recvMsg[0].equals("ackCoordinatorReject2PC")){
+			/*else if(recvMsg[0].equals("ackCoordinatorReject2PC")){
 				// Only 2PC coord will receive this message
 				// When 2 acks are received, release locks
 				// If 2 acks not received, paxos fails - TODO: quit txn
@@ -444,7 +439,7 @@ public class DataCenter extends Thread {
 					ackCoordinatorAccept2PC.put(key, new Integer(0));
 				}
 				
-			}
+			}*/
 			
 			else if(recvMsg[0].equals("commit2PC")) {
 				// When Paxos leader receives this, replicate log entry
