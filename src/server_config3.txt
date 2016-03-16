@@ -1,7 +1,7 @@
 {
   "client_server": "server"
   "server_id": "2"
-  "servers":[{"ip":"128.111.84.191"},{"ip":"128.111.84.192"},{"ip":"98.182.16.22"}]
+  "servers":[{"ip":"128.111.84.191"},{"ip":"128.111.84.192"},{"ip":"128.111.43.14"}]
   "coordinator_ip": "128.111.84.192"
   "coordinator_id": "Y"
   "leaders":[{"id":"X"},{"id":"Y"},{"id":"Z"}]
