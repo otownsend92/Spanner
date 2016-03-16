@@ -143,7 +143,7 @@ public class DataCenter extends Thread {
 			System.out.println("Sending: " + msg +" to " + host);
 			try{
 				Socket s = new Socket();//(host, PORT);
-				s.setSoTimeout(500);
+				s.setSoTimeout(1000);
 				PrintWriter socketOut = new PrintWriter(s.getOutputStream(), true);
 				socketOut.println(msg);
 				socketOut.close();
