@@ -23,6 +23,8 @@ public class Client extends com.yahoo.ycsb.DB implements Runnable{
     private final Object lock = new Object();
     private ServerSocket serverSocket;
     private String clientIP = "";
+    public String coord2PCIp;
+    public String coord2PCShard;
 
     public void initConnections(){
         for (String h: hosts){
@@ -162,7 +164,8 @@ public class Client extends com.yahoo.ycsb.DB implements Runnable{
             System.out.println("Server " + Integer.toString(i) +  ": " + ip );
             hosts.add(ip);
         }
-
+        coord2PCIp = prop.getProperty("CoordIp");
+        coord2PCShard = prop.getProperty("CoordShardId");
 
         initConnections();
     }
