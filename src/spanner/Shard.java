@@ -1,8 +1,5 @@
 package spanner;
 
-import sun.font.TrueTypeFont;
-import sun.rmi.runtime.Log;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
