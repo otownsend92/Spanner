@@ -401,19 +401,19 @@ public class DataCenter extends Thread {
 						int hostId2 = (myHostId + 2) % 3;
 						
 						if(Main.coord2PCShard.equals("X")) {
-							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "Y";
+							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "!" + "Y";
 							sendMessage(Main.serverHosts.get(hostId1), commit2PC1);
-							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "Z";
+							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "!" + "Z";
 							sendMessage(Main.serverHosts.get(hostId2), commit2PC2);
 						} else if(Main.coord2PCShard.equals("Y")) {
-							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "X";
+							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "!" + "X";
 							sendMessage(Main.serverHosts.get(hostId1), commit2PC1);
-							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "Z";
+							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "!" + "Z";
 							sendMessage(Main.serverHosts.get(hostId2), commit2PC2);
 						} else if (Main.coord2PCShard.equals("Z")) {
-							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "X";
+							String commit2PC1 = "commit2PC" + "!" + clientIp + "!" + txn + "!" + "X";
 							sendMessage(Main.serverHosts.get(hostId1), commit2PC1);
-							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "Y";
+							String commit2PC2 = "commit2PC" + "!" + clientIp + "!" + txn + "!" + "Y";
 							sendMessage(Main.serverHosts.get(hostId2), commit2PC2);
 						}
 						
