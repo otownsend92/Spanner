@@ -117,9 +117,11 @@ public class Shard {
         for(Map.Entry<String, Lock> pair : lockTable.entrySet()) {
         	synchronized(lockTable) {
         		String key = pair.getKey();
-                Lock value = pair.getValue();
-                value.removeClientIp(clientIp);
-                lockTable.put(key, value);
+        		Lock value = pair.getValue();
+            	if(value != null) {
+                	value.removeClientIp(clientIp);
+                	lockTable.put(key, value);
+        		}
         	}
         }
     }
@@ -130,8 +132,10 @@ public class Shard {
     		synchronized(lockTable) {
     			String key = tran.getVariable();
         		Lock value = lockTable.get(key);
-        		value.removeClientIp(clientIp);
-        		lockTable.put(key, value);
+        		if(value != null) {
+        			value.removeClientIp(clientIp);
+        			lockTable.put(key, value);
+        		}
     		}
     	}
     }
