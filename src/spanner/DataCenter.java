@@ -410,7 +410,7 @@ public class DataCenter extends Thread {
 						// 2PC coordinator tells client that its committed
 						
 						String returnValues = " X: " + shardX.readValues + " Y: " + shardY.readValues + " Z: " + shardZ.readValues;
-						sendMessage(clientIp, "committed " + txn + returnValues);
+						sendMessage(clientIp, myIp + ": committed " + txn + returnValues);
 					}
 					
 				} else {
