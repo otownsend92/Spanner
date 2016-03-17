@@ -411,6 +411,9 @@ public class DataCenter extends Thread {
 						
 						String returnValues = " X: " + shardX.readValues + " Y: " + shardY.readValues + " Z: " + shardZ.readValues;
 						sendMessage(clientIp, myIp + ": committed " + txn + returnValues);
+						
+						//reset ackCoordinatorAccept2PC counts
+						ackCoordinatorAccept2PC.put(key,  new Integer(0));
 					}
 					
 				} else {
@@ -574,6 +577,9 @@ int quorumVal = -9;
 					String coordinatorAck2PC = "coordinatorAccept2PC!"+clientIp+"!"+txn + "!" + shardId;
 					sendMessage(Main.serverHosts.get((myHostId + 1) % 3), coordinatorAck2PC);
 					sendMessage(Main.serverHosts.get((myHostId + 2) % 3), coordinatorAck2PC);
+					
+					//reset ackAccept2PC
+					ackAccept2PC.put(clientIp+"!"+txn, new Integer(0));
 				}
 			} else {
 				synchronized(ackReject2PC) {
