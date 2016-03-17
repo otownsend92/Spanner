@@ -63,7 +63,7 @@ public class DataCenter extends Thread {
 			
 			PaxosLog = new ArrayList<String>();
 			
-			System.out.println("Shards configured");
+			//System.out.println("Shards configured");
 		}
 		catch (IOException e){
 			System.out.println(e.toString());
@@ -91,7 +91,7 @@ public class DataCenter extends Thread {
 				new Thread(new DCHandlerThread(this, clientSocket)).start();
 				
 			else {
-				System.out.println("DC failed to connect to client.");
+				//System.out.println("DC failed to connect to client.");
 			}
 		}
 	}
@@ -140,7 +140,7 @@ public class DataCenter extends Thread {
 		 * @param msg msg you're trying to send
 		 */
 		private void sendMessage(String host, String msg){
-			System.out.println("Sending: " + msg +" to " + host);
+			//System.out.println("Sending: " + msg +" to " + host);
 			try{
 				Socket s = new Socket(host, PORT);
 				s.setSoTimeout(1000);
@@ -158,7 +158,7 @@ public class DataCenter extends Thread {
 		 * Parse incoming string from client socket
 		 */
 		private void processInput(String input) {
-			System.out.println("Received input: " + input);
+			//System.out.println("Received input: " + input);
 			String[] recvMsg = input.split("!");
 			
 			if(recvMsg.length < 3) {
@@ -173,23 +173,23 @@ public class DataCenter extends Thread {
 				String txn = recvMsg[2];
 				String shardId = recvMsg[3];
 				
-				System.out.println("clientIp: "+ clientIp);
-				System.out.println("txn: "+ txn);
-				System.out.println("shardId: "+ shardId);
+				//System.out.println("clientIp: "+ clientIp);
+				//System.out.println("txn: "+ txn);
+				//System.out.println("shardId: "+ shardId);
 				
 				addPendingTxn(txn);
-				System.out.println("added transaction");
+				//System.out.println("added transaction");
 				
 				int hostId1 = (myHostId + 1) % 3;
 				int hostId2 = (myHostId + 2) % 3;
 
 				// Grab dem locks homies
 				if(shardId.equals("X")) {
-					System.out.println("ShardId equals X");
+					//System.out.println("ShardId equals X");
 					boolean good = shardX.processTransaction(clientIp, txn);
 					if(good) {
 						shardX.logTransaction(LogEntry.EntryType.PREPARE, txn);
-						System.out.println("shard x is sending acceptPaxos");
+						//System.out.println("shard x is sending acceptPaxos");
 						sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 						sendMessage(Main.serverHosts.get(hostId2), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
 						
@@ -198,10 +198,10 @@ public class DataCenter extends Thread {
 						sendMessage(clientIp, "prepare2PC failed for txn: " + txn);
 					}
 				} else if(shardId.equals("Y")) {
-					System.out.println("ShardId equals Y");
+					//System.out.println("ShardId equals Y");
 					boolean good = shardY.processTransaction(clientIp, txn);
 					if(good) {
-						System.out.println("shard y is sending acceptPaxos");
+						//System.out.println("shard y is sending acceptPaxos");
 
 						shardY.logTransaction(LogEntry.EntryType.PREPARE, txn);
 						sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
@@ -213,10 +213,10 @@ public class DataCenter extends Thread {
 					}
 
 				} else if(shardId.equals("Z")) {
-					System.out.println("ShardId equals Z");
+					//System.out.println("ShardId equals Z");
 					boolean good = shardZ.processTransaction(clientIp, txn);
 					if(good) {
-						System.out.println("shard z is sending acceptPaxos");
+						//System.out.println("shard z is sending acceptPaxos");
 
 						shardZ.logTransaction(LogEntry.EntryType.PREPARE, txn);
 						sendMessage(Main.serverHosts.get(hostId1), "acceptPaxos"+"!"+clientIp+"!"+txn+"!"+shardId+"!"+myHostId);
@@ -302,7 +302,6 @@ public class DataCenter extends Thread {
 					
 					checkAckAcceptPaxosQuorum(false, clientIp, txn);
 					
-					//TODO: rollback log? or nah?
 					removePendingTxn(clientIp, txn);
 
 				}
@@ -338,7 +337,7 @@ public class DataCenter extends Thread {
 				}
 			}
 			else if(recvMsg[0].equals("ackReject2PC")) {
-				//TODO
+				
 			}
 			
 			else if (recvMsg[0].equals("coordinatorAccept2PC")) {
@@ -597,7 +596,7 @@ int quorumVal = -9;
 		 */
 		private synchronized void addPendingTxn(String txn) {
 			pendingTxns.put(txn, 0);
-			System.out.println("Added " + txn + " to pendingTxns");
+			//System.out.println("Added " + txn + " to pendingTxns");
 		}
 
 		/*
@@ -610,7 +609,7 @@ int quorumVal = -9;
 			shardY.releaseSpecificLocks(clientIp, txn);
 			shardZ.releaseSpecificLocks(clientIp, txn);
 
-			System.out.println("Removed " + txn + " from pendingTxns \nDone.\n");
+			//System.out.println("Removed " + txn + " from pendingTxns \nDone.\n");
 		}
 	}
 }
